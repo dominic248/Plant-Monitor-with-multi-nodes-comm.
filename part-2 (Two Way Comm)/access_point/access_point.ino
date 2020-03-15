@@ -6,7 +6,7 @@ extern "C" {
 }
 
 #define ARRAYSIZE 10
-String results[ARRAYSIZE] = { "192.168.4.114" };
+String results[ARRAYSIZE] = { "0" };
 String moisture="",temp="",ipaddr="";
 String response="Don't water it!";
 bool manual=false;
@@ -109,6 +109,7 @@ void client_status() {
   number_client= wifi_softap_get_station_num();
   stat_info = wifi_softap_get_station_info();
   Serial.print("Total Connected Clients are = ");
+  int count=0;
   Serial.println(number_client);
     while (stat_info != NULL) {
       ipv4_addr *IPaddress = &stat_info->ip;
@@ -117,6 +118,8 @@ void client_status() {
       Serial.print(i);
       Serial.print(" IP adress is = ");
       Serial.print((address));
+      results[count]=address.toString();
+      count++;
       Serial.print(" with MAC adress is = ");
       String str = "";
       for(i=0;i<6;i++){
