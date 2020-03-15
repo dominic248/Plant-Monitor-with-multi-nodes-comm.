@@ -52,7 +52,6 @@ String getValue(String data, char separator, int index){
     int found = 0;
     int strIndex[] = { 0, -1 };
     int maxIndex = data.length() - 1;
-
     for (int i = 0; i <= maxIndex && found <= index; i++) {
         if (data.charAt(i) == separator || i == maxIndex) {
             found++;
@@ -92,7 +91,6 @@ String temperature(){
  byte data[12];
  byte addr[8];
  float celsius, fahrenheit;
- 
  if ( !ds.search(addr)) {
  /// Serial.println("No more addresses.");
  /// Serial.println();
@@ -103,7 +101,6 @@ String temperature(){
  if ( ds.search(addr)) {
  Serial.println("fallo");
  }
- 
  for( i = 0; i < 8; i++) { 
  addr[i];
  }
@@ -111,15 +108,12 @@ String temperature(){
  Serial.println("CRC is not valid!");
  return String(0);
  }
- 
  // the first ROM byte indicates which chip
  switch (addr[0]) {
  case 0x10:
-
  type_s = 1;
  break;
  case 0x28:
-
  type_s = 0;
  break;
  case 0x22:
@@ -128,27 +122,20 @@ String temperature(){
  break;
  default:
  Serial.println("Device is not a DS18x20 family device.");
- 
  return String(0);
  } 
-
  ds.reset();
  ds.select(addr);
  ds.write(0x44, 1); 
   delay(1000); 
-
  present = ds.reset();
  ds.select(addr); 
  ds.write(0xBE); 
-
  //Serial.println("Paso 7");
- 
  for ( i = 0; i < 9; i++) { 
  data[i] = ds.read();
  }
- 
  OneWire::crc8(data, 8); 
-
  int16_t raw = (data[1] << 8) | data[0];
  if (type_s) {
  raw = raw << 3; 
@@ -156,19 +143,15 @@ String temperature(){
  raw = (raw & 0xFFF0) + 12 - data[6]; }
  } else {
  byte cfg = (data[4] & 0x60);
-
  if (cfg == 0x00) raw = raw & ~7; // 9 bit resolution, 93.75 ms
  else if (cfg == 0x20) raw = raw & ~3; // 10 bit res, 187.5 ms
  else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
   }
- 
  float celsius_web; 
  celsius = (float)raw / 16.0;
-
  if (isnan(celsius)) {
  Serial.println("isnan");
  }
-
  Serial.println("Temperature: "+String(celsius));
  return String(celsius);
 }

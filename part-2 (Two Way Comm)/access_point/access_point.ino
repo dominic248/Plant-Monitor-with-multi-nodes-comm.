@@ -5,6 +5,18 @@ const char* password = "24081999";
 IPAddress IP(192,168,4,15);
 IPAddress mask = (255, 255, 255, 0);
 byte ledPin = 2;
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+
+
+
 void setup() {
  Serial.begin(9600);
  Serial.print("Setting soft-AP ... ");
@@ -14,10 +26,19 @@ void setup() {
  server.begin();
  pinMode(ledPin, OUTPUT);
  Serial.println();
- Serial.println("accesspoint_bare_01.ino");
  Serial.println("Server started.");
  Serial.print("IP: "); Serial.println(WiFi.softAPIP());
  Serial.print("MAC:"); Serial.println(WiFi.softAPmacAddress());
+ if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  delay(2000);
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+      display.setCursor(0,10);
+      display.println("TURNED ON");
+  display.display();
 }
 void loop() {
  delay(2000);
@@ -32,6 +53,14 @@ void loop() {
  String response;
  String moisture = getValue(request, ',', 0);
  String temp = getValue(request, ',', 1);
+ display.clearDisplay();
+ display.setTextColor(WHITE);
+ display.setCursor(0,10);
+ display.println();
+ display.println("Stations conn.: "+ String(WiFi.softAPgetStationNum())); 
+ display.println("Moisture: " + String(moisture));
+ display.println("Temp: " + String(temp) + "deg C");
+  display.display();
  if(moisture=="DRY"){
   response="Water it!";
  }else if(moisture=="WET"){
