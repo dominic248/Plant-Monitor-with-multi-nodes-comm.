@@ -5,8 +5,12 @@ extern "C" {
   #include<user_interface.h>
 }
 
-#define ARRAYSIZE 10
-String results[ARRAYSIZE] = { "0" };
+#define MAIN_ARRAYSIZE 50
+int main_count=0;
+String main_ips[MAIN_ARRAYSIZE] = { "0" };
+#define WATER_ARRAYSIZE 50
+int water_count=0;
+String water_ips[WATER_ARRAYSIZE] = { "0" };
 String moisture="",temp="",ipaddr="";
 String response="Don't water it!";
 bool manual=false;
@@ -34,8 +38,10 @@ void setup() {
   // Start server
 
   server1.on("/",HTTP_GET, handle_OnConnect);
-  server1.on("/page", HTTP_GET, handleRoot);
-  server1.on("/login", HTTP_POST, handleLogin);
+  server1.on("/addwater", HTTP_GET, handleWater);
+  server1.on("/addwaterit", HTTP_POST, handleWaterIt);
+  server1.on("/removewater", HTTP_GET, handleRemoveWater);
+  server1.on("/removewaterit", HTTP_POST, handleRemoveWaterIt);
   server1.on("/manualon",HTTP_GET, handle_manualon);
   server1.on("/manualoff",HTTP_GET, handle_manualoff);
   server1.onNotFound(handle_NotFound);
@@ -50,6 +56,14 @@ void loop() {
  
  Serial.println("********************************");
  Serial.println("Manual Mode = "+String(manual));
+ Serial.print("All main IPs: ");
+ for(int i=0;i<water_count;i++){
+    Serial.print(water_ips[i]+", ");
+ }Serial.println();
+ Serial.print("All water IPs: ");
+ for(int i=0;i<main_count;i++){
+    Serial.print(main_ips[i]+" ");
+ }Serial.println();
  client_status();
  WiFiClient client = server.available();
  if (!client) {return;}
@@ -71,11 +85,17 @@ void loop() {
    }
  }
  if(manual){
-  for (int i =0; i< ARRAYSIZE; i++) {
-    if(results[i]==ipaddr){
+  int check=0;
+  for (int i =0; i< water_count; i++) {
+    Serial.println(water_ips[i]);
+    if(water_ips[i]==ipaddr){
+      check=1;
       response="water it!";
       break;
     }
+  }
+  if(check==0){
+    response="dont water it!";
   }
  }
  Serial.print("Byte sent to the station: ");
@@ -84,6 +104,18 @@ void loop() {
 
  delay(2000);
 }
+
+void deleteElement(String arr[], int n, String x) { 
+  int i;
+   for (i=0; i<n; i++) 
+      if (arr[i] == x) 
+         break; 
+   if (i < n) { 
+       n = n - 1; 
+       for (int j=i; j<n; j++) 
+          arr[j] = arr[j+1]; 
+   } 
+} 
 
 String getValue(String data, char separator, int index){
     int found = 0;
@@ -109,7 +141,7 @@ void client_status() {
   number_client= wifi_softap_get_station_num();
   stat_info = wifi_softap_get_station_info();
   Serial.print("Total Connected Clients are = ");
-  int count=0;
+  main_count=0;
   Serial.println(number_client);
     while (stat_info != NULL) {
       ipv4_addr *IPaddress = &stat_info->ip;
@@ -118,11 +150,11 @@ void client_status() {
       Serial.print(i);
       Serial.print(" IP adress is = ");
       Serial.print((address));
-      results[count]=address.toString();
-      count++;
+      main_ips[main_count]=address.toString();
+      main_count++;
       Serial.print(" with MAC adress is = ");
       String str = "";
-      for(i=0;i<6;i++){
+      for(int i=0;i<6;i++){
         String val=String(stat_info->bssid[i], HEX);
         if(val.length()==1){str +=0;}
         str +=val;
@@ -138,21 +170,38 @@ void client_status() {
 
 
 
-void handleRoot() {                          // When URI / is requested, make login Webpage
-  server1.send(200, "text/html", "<form action=\"/login\" method=\"POST\"><input type=\"text\" name=\"uname\" placeholder=\"Username\"></br><input type=\"password\" name=\"pass\" placeholder=\"Password\"></br><input type=\"submit\" value=\"Login\"></form><p>Try 'User1' and 'Pass1' ...</p>");
-}
-void handleLogin() {                         //Handle POST Request
-  if( ! server1.hasArg("uname") || ! server1.hasArg("pass") 
-      || server1.arg("uname") == NULL || server1.arg("pass") == NULL) { // Request without data
-    server1.send(400, "text/plain", "400: Invalid Request");         // Print Data on screen
-    return;
+
+
+void handleWater() {   
+  String str="";                       
+  for(int i=0;i<main_count;i++){
+    str+="<input type=\"radio\" name=\"water\" value="+main_ips[i]+" />"+main_ips[i]+"<br />";
   }
-  if(server1.arg("uname") == "User1" && server1.arg("pass") == "Pass1") { // If username and the password are correct
-    server1.send(200, "text/html", "<h1>Hello, " + server1.arg("uname") + "!</h1><p>Login successful</p>");
-  } else {                                                                              // Username and password don't match
-    server1.send(401, "text/plain", "401: Invalid Credentials");
-  }
+  server1.send(200, "text/html", "<form action=\"/addwaterit\" method=\"POST\">"+str+"<input type=\"submit\" value=\"Start Water\"></form>");
 }
+
+void handleWaterIt() {                         //Handle POST Request
+  water_ips[water_count]=String(server1.arg("water"));
+  water_count++;
+  server1.send(200, "text/html", "done");
+}
+
+void handleRemoveWater() {   
+  String str="";                       
+  for(int i=0;i<water_count;i++){
+    str+="<input type=\"radio\" name=\"water\" value="+water_ips[i]+" />"+water_ips[i]+"<br />";
+  }
+  server1.send(200, "text/html", "<form action=\"/removewaterit\" method=\"POST\">"+str+"<input type=\"submit\" value=\"Stop Water\"></form>");
+}
+
+void handleRemoveWaterIt() {                         //Handle POST Request
+  deleteElement(water_ips, water_count, String(server1.arg("water")));
+  water_count--;
+  server1.send(200, "text/html", "done");
+}
+
+ 
+
 
 
 
