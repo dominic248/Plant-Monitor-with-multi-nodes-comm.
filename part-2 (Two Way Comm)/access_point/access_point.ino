@@ -33,9 +33,11 @@ void setup() {
  Serial.print("MAC:"); Serial.println(WiFi.softAPmacAddress());
   // Start server
 
-  server1.on("/", handle_OnConnect);
-  server1.on("/manualon", handle_manualon);
-  server1.on("/manualoff", handle_manualoff);
+  server1.on("/",HTTP_GET, handle_OnConnect);
+  server1.on("/page", HTTP_GET, handleRoot);
+  server1.on("/login", HTTP_POST, handleLogin);
+  server1.on("/manualon",HTTP_GET, handle_manualon);
+  server1.on("/manualoff",HTTP_GET, handle_manualoff);
   server1.onNotFound(handle_NotFound);
   server1.begin();
 }
@@ -129,6 +131,27 @@ void client_status() {
       i++;
     }
 }
+
+
+
+
+void handleRoot() {                          // When URI / is requested, make login Webpage
+  server1.send(200, "text/html", "<form action=\"/login\" method=\"POST\"><input type=\"text\" name=\"uname\" placeholder=\"Username\"></br><input type=\"password\" name=\"pass\" placeholder=\"Password\"></br><input type=\"submit\" value=\"Login\"></form><p>Try 'User1' and 'Pass1' ...</p>");
+}
+void handleLogin() {                         //Handle POST Request
+  if( ! server1.hasArg("uname") || ! server1.hasArg("pass") 
+      || server1.arg("uname") == NULL || server1.arg("pass") == NULL) { // Request without data
+    server1.send(400, "text/plain", "400: Invalid Request");         // Print Data on screen
+    return;
+  }
+  if(server1.arg("uname") == "User1" && server1.arg("pass") == "Pass1") { // If username and the password are correct
+    server1.send(200, "text/html", "<h1>Hello, " + server1.arg("uname") + "!</h1><p>Login successful</p>");
+  } else {                                                                              // Username and password don't match
+    server1.send(401, "text/plain", "401: Invalid Credentials");
+  }
+}
+
+
 
 void handle_OnConnect() {
   server1.send(200, "text/html", SendHTML(manual)); 
