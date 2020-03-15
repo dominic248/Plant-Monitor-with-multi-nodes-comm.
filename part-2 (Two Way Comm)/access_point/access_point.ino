@@ -5,7 +5,9 @@ extern "C" {
   #include<user_interface.h>
 }
 
-String moisture="",temp="";
+#define ARRAYSIZE 10
+String results[ARRAYSIZE] = { "192.168.4.114" };
+String moisture="",temp="",ipaddr="";
 String response="Don't water it!";
 bool manual=false;
 WiFiServer server(80);
@@ -56,6 +58,7 @@ void loop() {
  
  moisture = getValue(request, ',', 0);
  temp = getValue(request, ',', 1);
+ ipaddr = getValue(request, ',', 2);
  if(!manual){
    if(moisture=="DRY"){
     response="Water it!";
@@ -66,7 +69,12 @@ void loop() {
    }
  }
  if(manual){
-  response="Don't water it!";
+  for (int i =0; i< ARRAYSIZE; i++) {
+    if(results[i]==ipaddr){
+      response="water it!";
+      break;
+    }
+  }
  }
  Serial.print("Byte sent to the station: ");
  Serial.println(client.println(response+"\r"));

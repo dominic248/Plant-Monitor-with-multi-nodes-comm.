@@ -7,7 +7,7 @@ byte ledPin = 2;
 #define MOISTURE_ANALOG A0  /* Connect Soil moisture analog sensor pin to A0 of NodeMCU */
 #define MOISTURE_DIGITAL D0
 #define ds18b20 2
-String type="",temp="";
+String type="",temp="",ipaddr="";
 OneWire ds(ds18b20);
 IPAddress server(192,168,4,15);     // IP address of the AP
 WiFiClient client;
@@ -26,6 +26,7 @@ void setup() {
   Serial.println("station_bare_01.ino");
   Serial.print("LocalIP:"); Serial.println(WiFi.localIP());
   Serial.println("MAC:" + WiFi.macAddress());
+  ipaddr=WiFi.localIP().toString();
   Serial.print("Gateway:"); Serial.println(WiFi.gatewayIP());
   Serial.print("AP MAC:"); Serial.println(WiFi.BSSIDstr());
   pinMode(ledPin, OUTPUT);
@@ -39,7 +40,7 @@ void loop() {
   temp=temperature();
   Serial.print("Byte sent to the AP: ");
 //  Serial.println(client.print(String(moisture_percentage)+"\r"));
-  Serial.println(client.print(type+","+temp+"\r"));
+  Serial.println(client.print(type+","+temp+","+ipaddr+"\r"));
   String answer = client.readStringUntil('\r');
   Serial.println("From the AP: " + answer);
   client.flush();
