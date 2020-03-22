@@ -1,5 +1,12 @@
 #include <ESP8266WiFi.h>
-#include  <OneWire.h >
+#include <OneWire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 const char* ssid = "delta2";
 const char* password = "24081999";
@@ -11,6 +18,7 @@ String type="",temp="",ipaddr="";
 OneWire ds(ds18b20);
 IPAddress server(192,168,4,15);     // IP address of the AP
 WiFiClient client;
+
 void setup() {
   Serial.begin(9600);
   WiFi.mode(WIFI_STA);
@@ -30,7 +38,30 @@ void setup() {
   Serial.print("Gateway:"); Serial.println(WiFi.gatewayIP());
   Serial.print("AP MAC:"); Serial.println(WiFi.BSSIDstr());
   pinMode(ledPin, OUTPUT);
+  delay(2000);
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  delay(2000);
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 10);
+  display.println("TURNED ON");
+  display.display();
 }
+
+void displayText(String s){
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,10);
+  display.println(s);
+  display.display();
+}
+
 void loop() {
   client.connect(server, 80);
   digitalWrite(ledPin, LOW);
@@ -42,10 +73,15 @@ void loop() {
 //  Serial.println(client.print(String(moisture_percentage)+"\r"));
   Serial.println(client.print(type+","+temp+","+ipaddr+"\r"));
   String answer = client.readStringUntil('\r');
-  Serial.println("From the AP: " + answer);
+  String ans;
+  if(answer=="0"){ans="Don't water it!";}
+  else if(answer=="1"){ans="Water it!";}
+  else{ans="Invalid Request!";}
+  Serial.println("From the AP: " + ans);
   client.flush();
   digitalWrite(ledPin, HIGH);
   client.stop();
+  displayText("IP-addr:"+ipaddr+"\nM:"+type+"  T:"+temp+"C\n\nResponse:\n"+ans);
   delay(2000);
 }
 

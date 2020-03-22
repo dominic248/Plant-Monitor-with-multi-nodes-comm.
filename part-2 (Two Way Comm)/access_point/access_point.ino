@@ -1,5 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 extern "C" {
   #include<user_interface.h>
@@ -46,9 +53,30 @@ void setup() {
   server1.on("/manualoff",HTTP_GET, handle_manualoff);
   server1.onNotFound(handle_NotFound);
   server1.begin();
+
+  delay(2000);
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  delay(2000);
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 10);
+  display.println("TURNED ON");
+  display.display();
 }
 
-
+void displayText(String s){
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,10);
+  display.println(s);
+  display.display();
+}
 
 void loop() {
  delay(2000);
@@ -64,7 +92,7 @@ void loop() {
  for(int i=0;i<main_count;i++){
     Serial.print(main_ips[i]+" ");
  }Serial.println();
- client_status();
+ int conn_clients=client_status();
  WiFiClient client = server.available();
  if (!client) {return;}
  digitalWrite(ledPin, LOW);
@@ -77,11 +105,11 @@ void loop() {
  ipaddr = getValue(request, ',', 2);
  if(!manual){
    if(moisture=="DRY"){
-    response="Water it!";
+    response="1";
    }else if(moisture=="WET"){
-    response="Don't water it!";
+    response="0";
    }else{
-    response="Invalid Request!";
+    response="2";
    }
  }
  if(manual){
@@ -90,14 +118,15 @@ void loop() {
     Serial.println(water_ips[i]);
     if(water_ips[i]==ipaddr){
       check=1;
-      response="water it!";
+      response="1";
       break;
     }
   }
   if(check==0){
-    response="dont water it!";
+    response="0";
   }
  }
+ displayText("192.168.4.15:8080\nMode:"+String(manual ? "ON" : "OFF")+"  Dev:"+String(conn_clients)+"\nFrom IP:"+ipaddr+"\nM:"+moisture+"  T:"+temp+"C"+"  W:"+(response=="1" ? "Y" : "N"));
  Serial.print("Byte sent to the station: ");
  Serial.println(client.println(response+"\r"));
  digitalWrite(ledPin, HIGH);
@@ -132,7 +161,7 @@ String getValue(String data, char separator, int index){
     return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
-void client_status() {
+int client_status() {
   unsigned char number_client;
   struct station_info *stat_info;
   struct ip_addr *IPaddress;
@@ -143,28 +172,29 @@ void client_status() {
   Serial.print("Total Connected Clients are = ");
   main_count=0;
   Serial.println(number_client);
-    while (stat_info != NULL) {
-      ipv4_addr *IPaddress = &stat_info->ip;
-      address = IPaddress->addr;
-      Serial.print("client = ");
-      Serial.print(i);
-      Serial.print(" IP adress is = ");
-      Serial.print((address));
-      main_ips[main_count]=address.toString();
-      main_count++;
-      Serial.print(" with MAC adress is = ");
-      String str = "";
-      for(int i=0;i<6;i++){
-        String val=String(stat_info->bssid[i], HEX);
-        if(val.length()==1){str +=0;}
-        str +=val;
-        if(i<5){str += ":";}
-      }
-      str += "\r\n";
-      Serial.print(str);
-      stat_info = STAILQ_NEXT(stat_info, next);
-      i++;
+  while (stat_info != NULL) {
+    ipv4_addr *IPaddress = &stat_info->ip;
+    address = IPaddress->addr;
+    Serial.print("client = ");
+    Serial.print(i);
+    Serial.print(" IP adress is = ");
+    Serial.print((address));
+    main_ips[main_count]=address.toString();
+    main_count++;
+    Serial.print(" with MAC adress is = ");
+    String str = "";
+    for(int i=0;i<6;i++){
+      String val=String(stat_info->bssid[i], HEX);
+      if(val.length()==1){str +=0;}
+      str +=val;
+      if(i<5){str += ":";}
     }
+    str += "\r\n";
+    Serial.print(str);
+    stat_info = STAILQ_NEXT(stat_info, next);
+    i++;
+  }
+  return number_client;
 }
 
 
